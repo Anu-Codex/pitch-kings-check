@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robotic AI Half-Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h1 id="app-title" class="text-xl font-bold text-emerald-400">🤖 Robotic AI Half-Admin</h1>
+        <p id="app-subtitle" class="text-xs text-slate-400">Video Referee • Rulebook Assistant • Community Support</p>
+      </div>
+
+      <!-- Language Selector -->
+      <div class="flex items-center gap-2 bg-slate-800 p-1 rounded-lg border border-slate-700">
+        <span id="lang-label" class="text-xs text-slate-400 px-2">Language:</span>
+        <button id="btn-lang-en" onclick="setLanguage('en')" class="px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 text-slate-950">
+          English
+        </button>
+        <button id="btn-lang-hi" onclick="setLanguage('hi')" class="px-3 py-1.5 rounded-md text-xs font-semibold text-slate-300 hover:bg-slate-700">
+          हिन्दी (शुद्ध)
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-5xl mx-auto px-4 flex gap-2 border-t border-slate-800/70 pt-2">
+      <button onclick="switchTab('video')" id="tab-video" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-emerald-400 text-emerald-400">
+        🎥 Video Checking AI
+      </button>
+      <button onclick="switchTab('rulebook')" id="tab-rulebook" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+        📖 Rulebook & Q&A
+      </button>
+      <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200">
+        🛠️ Admin Training
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6">
+
+    <!-- ================= TAB 1: VIDEO CHECKING AI ================= -->
+    <section id="panel-video" class="space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 id="v-heading" class="text-lg font-bold mb-1">Cross / Lob Goal Video Checker</h2>
+        <p id="v-desc" class="text-sm text-slate-400 mb-5">
+          Upload a goal clip (under 14 MB, 5–20 seconds recommended). The AI will check whether it is a Cross Goal or Lob Goal.
+        </p>
+
+        <form id="video-check-form" class="space-y-4">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label id="v-file-label" class="block text-sm font-medium text-slate-300 mb-1">Select Goal Video</label>
+              <input type="file" id="check-video-file" accept="video/*" required
+                class="w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 bg-slate-950 border border-slate-800 rounded-lg p-2" />
+            </div>
+
+            <div>
+              <label id="v-mode-label" class="block text-sm font-medium text-slate-300 mb-1">Check Type</label>
+              <select id="check-type" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm text-slate-200">
+                <option value="both" id="opt-both">Check Both (Cross & Lob)</option>
+                <option value="cross" id="opt-cross">Cross Goal Only</option>
+                <option value="lob" id="opt-lob">Lob Goal Only</option>
+              </select>
+            </div>
+          </div>
+
+          <video id="video-preview" controls class="hidden w-full max-h-72 rounded-xl bg-black border border-slate-800"></video>
+
+          <button type="submit" id="v-submit-btn"
+            class="w-full md:w-auto px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl transition disabled:opacity-50">
+            Analyze Goal Video
+          </button>
+        </form>
+
+        <!-- Video Result Box -->
+        <div id="video-result" class="hidden mt-6 p-5 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+          <div id="cross-box" class="space-y-1.5">
+            <div class="flex justify-between text-sm font-semibold">
+              <span id="res-cross-statement" class="text-emerald-400"></span>
+              <span id="res-cross-pct" class="text-slate-300"></span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+              <div id="res-cross-bar" class="bg-emerald-500 h-3 transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div id="lob-box" class="space-y-1.5">
+            <div class="flex justify-between text-sm font-semibold">
+              <span id="res-lob-statement" class="text-sky-400"></span>
+              <span id="res-lob-pct" class="text-slate-300"></span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
+              <div id="res-lob-bar" class="bg-sky-500 h-3 transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-800">
+            <p id="res-exp-title" class="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-1">Referee Explanation</p>
+            <p id="res-explanation" class="text-sm text-slate-200 leading-relaxed"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: RULEBOOK & Q&A ================= -->
+    <section id="panel-rulebook" class="hidden space-y-6">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+        <h2 id="r-heading" class="text-lg font-bold mb-1">Ask the Rulebook AI</h2>
+        <p id="r-desc" class="text-sm text-slate-400 mb-4">
+          Ask about Cross rules, Lob rules, entry fees, or any community detail. Answers come directly from the uploaded rulebook photos.
+        </p>
+
+        <!-- Quick Sample Questions -->
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button onclick="askSample('cross')" id="q-sample-1" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-slate-300">
+            What is the rule for Cross?
+          </button>
+          <button onclick="askSample('fee')" id="q-sample-2" class="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full text-slate-300">
+            What is the entry fee?
+          </button>
+        </div>
+
+        <!-- Chat History -->
+        <div id="chat-box" class="bg-slate-950 border border-slate-800 rounded-xl p-4 h-80 overflow-y-auto space-y-3 mb-4">
+          <div id="chat-welcome" class="text-sm text-slate-400 italic">
+            Ask any question below and the Half-Admin AI will read the rulebook photos and reply immediately.
+          </div>
+        </div>
+
+        <form id="rulebook-form" class="flex gap-2">
+          <input type="text" id="rulebook-question" required
+            placeholder="Type your question here..."
+            class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-emerald-500" />
+          <button type="submit" id="r-submit-btn"
+            class="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm transition">
+            Ask AI
+          </button>
+        </form>
+      </div>
+
+      <!-- Uploaded Rulebook Photos Gallery -->
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <h3 id="r-gallery-title" class="text-sm font-bold text-slate-300 mb-3">Uploaded Rulebook / Community Photos</h3>
+        <div id="public-rulebook-gallery" class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-400"></div>
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: ADMIN TRAINING PANEL ================= -->
+    <section id="panel-admin" class="hidden space-y-6">
+      <!-- Admin Login Box -->
+      <div id="admin-login-box" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md mx-auto text-center space-y-4">
+        <h2 id="a-login-title" class="text-lg font-bold">Admin Access Required</h2>
+        <p id="a-login-desc" class="text-xs text-slate-400">Enter the Admin PIN to train the AI with videos and upload rulebook photos.</p>
+        <input type="password" id="admin-pin-input" placeholder="Admin PIN"
+          class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-center text-sm" />
+        <button onclick="loginAdmin()" id="a-login-btn" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm">
+          Unlock Admin Panel
+        </button>
+        <p id="admin-login-err" class="text-xs text-rose-400 hidden"></p>
+      </div>
+
+      <!-- Admin Dashboard -->
+      <div id="admin-dashboard" class="hidden space-y-6">
+
+        <!-- Training Progress Counters (10-15 target) -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p class="text-xs text-slate-400" id="lbl-cnt-rc">Real Cross Goals</p>
+            <p class="text-2xl font-bold text-emerald-400"><span id="cnt-real_cross">0</span> <span class="text-xs text-slate-500">/ 15</span></p>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p class="text-xs text-slate-400" id="lbl-cnt-fc">Lookalike (Not Cross)</p>
+            <p class="text-2xl font-bold text-amber-400"><span id="cnt-fake_cross">0</span> <span class="text-xs text-slate-500">/ 15</span></p>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p class="text-xs text-slate-400" id="lbl-cnt-rl">Real Lob Goals</p>
+            <p class="text-2xl font-bold text-sky-400"><span id="cnt-real_lob">0</span> <span class="text-xs text-slate-500">/ 15</span></p>
+          </div>
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <p class="text-xs text-slate-400" id="lbl-cnt-fl">Lookalike (Not Lob)</p>
+            <p class="text-2xl font-bold text-rose-400"><span id="cnt-fake_lob">0</span> <span class="text-xs text-slate-500">/ 15</span></p>
+          </div>
+        </div>
+
+        <!-- Upload Training Video -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 id="a-train-title" class="text-base font-bold">1. Train Video Checking AI (Upload 10–15 Clips per Category)</h3>
+          <form id="admin-training-form" class="grid md:grid-cols-3 gap-4 items-end">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Category</label>
+              <select id="train-category" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm">
+                <option value="real_cross">Real Cross Goal</option>
+                <option value="fake_cross">Looks Like Cross, NOT Cross</option>
+                <option value="real_lob">Real Lob Goal</option>
+                <option value="fake_lob">Looks Like Lob, NOT Lob</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Training Video (&lt; 14 MB)</label>
+              <input type="file" id="train-video-file" accept="video/*" required
+                class="w-full text-xs text-slate-300 bg-slate-950 border border-slate-800 rounded-lg p-2" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Admin Notes (Optional)</label>
+              <input type="text" id="train-notes" placeholder="e.g. Corner pass, not a flank cross"
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm" />
+            </div>
+            <button type="submit" id="train-submit-btn" class="md:col-span-3 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-sm">
+              Upload & Train AI with Video
+            </button>
+          </form>
+          <div id="training-list" class="space-y-2 max-h-60 overflow-y-auto pt-2"></div>
+        </div>
+
+        <!-- Upload Rulebook Photo -->
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+          <h3 id="a-rule-title" class="text-base font-bold">2. Upload Rulebook / Community Detail Photos</h3>
+          <form id="admin-rulebook-form" class="grid md:grid-cols-2 gap-4 items-end">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Photo Title</label>
+              <input type="text" id="rulebook-title" placeholder="e.g. Entry Fee & Cross Rules Page 1" required
+                class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-sm" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Rulebook Image</label>
+              <input type="file" id="rulebook-image-file" accept="image/*" required
+                class="w-full text-xs text-slate-300 bg-slate-950 border border-slate-800 rounded-lg p-2" />
+            </div>
+            <button type="submit" id="rulebook-upload-btn" class="md:col-span-2 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-xl text-sm">
+              Upload & Read Rulebook Photo
+            </button>
+          </form>
+          <div id="admin-rulebook-list" class="space-y-2 max-h-60 overflow-y-auto pt-2"></div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    let currentLang = "en";
+    let adminPin = "";
+
+    const UI_TEXT = {
+      en: {
+        appTitle: "🤖 Robotic AI Half-Admin",
+        appSubtitle: "Video Referee • Rulebook Assistant • Community Support",
+        langLabel: "Language:",
+        tabVideo: "🎥 Video Checking AI",
+        tabRulebook: "📖 Rulebook & Q&A",
+        tabAdmin: "🛠️ Admin Training",
+        vHeading: "Cross / Lob Goal Video Checker",
+        vDesc: "Upload a goal clip (under 14 MB, 5–20 seconds recommended). The AI will check whether it is a Cross Goal or Lob Goal.",
+        vFileLabel: "Select Goal Video",
+        vModeLabel: "Check Type",
+        optBoth: "Check Both (Cross & Lob)",
+        optCross: "Cross Goal Only",
+        optLob: "Lob Goal Only",
+        vSubmit: "Analyze Goal Video",
+        vAnalyzing: "Analyzing video...",
+        resExpTitle: "Referee Explanation",
+        rHeading: "Ask the Rulebook AI",
+        rDesc: "Ask about Cross rules, Lob rules, entry fees, or any community detail. Answers come directly from the uploaded rulebook photos.",
+        qSample1: "What is the rule for Cross?",
+        qSample2: "What is the entry fee?",
+        rPlaceholder: "Type your question here...",
+        rSubmit: "Ask AI",
+        rGalleryTitle: "Uploaded Rulebook / Community Photos",
+        aLoginTitle: "Admin Access Required",
+        aLoginDesc: "Enter the Admin PIN to train the AI with videos and upload rulebook photos.",
+        aLoginBtn: "Unlock Admin Panel",
+      },
+      hi: {
+        appTitle: "🤖 रोबोटिक एआई हाफ-एडमिन",
+        appSubtitle: "वीडियो रेफरी • नियम-पुस्तिका सहायक • समुदाय सहायता",
+        langLabel: "भाषा:",
+        tabVideo: "🎥 वीडियो जाँच एआई",
+        tabRulebook: "📖 नियम-पुस्तिका और प्रश्न",
+        tabAdmin: "🛠️ एडमिन प्रशिक्षण",
+        vHeading: "क्रॉस / लॉब गोल वीडियो जाँचकर्ता",
+        vDesc: "गोल का वीडियो क्लिप अपलोड करें (14 MB से कम, 5–20 सेकंड उपयुक्त)। एआई जाँच करके बताएगा कि यह क्रॉस गोल है या लॉब गोल।",
+        vFileLabel: "गोल वीडियो चुनें",
+        vModeLabel: "जाँच का प्रकार",
+        optBoth: "दोनों जाँचें (क्रॉस और लॉब)",
+        optCross: "केवल क्रॉस गोल",
+        optLob: "केवल लॉब गोल",
+        vSubmit: "वीडियो की जाँच करें",
+        vAnalyzing: "वीडियो का विश्लेषण हो रहा है...",
+        resExpTitle: "रेफरी का स्पष्टीकरण",
+        rHeading: "नियम-पुस्तिका एआई से पूछें",
+        rDesc: "क्रॉस नियम, लॉब नियम, प्रवेश शुल्क या समुदाय के किसी भी नियम के बारे में पूछें। उत्तर अपलोड की गई फ़ोटो से दिए जाएंगे।",
+        qSample1: "क्रॉस का नियम क्या है?",
+        qSample2: "प्रवेश शुल्क कितना है?",
+        rPlaceholder: "यहाँ अपना प्रश्न लिखें...",
+        rSubmit: "एआई से पूछें",
+        rGalleryTitle: "अपलोड की गई नियम-पुस्तिका / समुदाय की फ़ोटो",
+        aLoginTitle: "एडमिन अनुमति आवश्यक",
+        aLoginDesc: "वीडियो से एआई को प्रशिक्षित करने और नियम फ़ोटो अपलोड करने के लिए एडमिन पिन दर्ज करें।",
+        aLoginBtn: "एडमिन पैनल खोलें",
+      }
+    };
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      const t = UI_TEXT[lang];
+
+      document.getElementById("btn-lang-en").className =
+        lang === "en"
+          ? "px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 text-slate-950"
+          : "px-3 py-1.5 rounded-md text-xs font-semibold text-slate-300 hover:bg-slate-700";
+      document.getElementById("btn-lang-hi").className =
+        lang === "hi"
+          ? "px-3 py-1.5 rounded-md text-xs font-semibold bg-emerald-500 text-slate-950"
+          : "px-3 py-1.5 rounded-md text-xs font-semibold text-slate-300 hover:bg-slate-700";
+
+      document.getElementById("app-title").textContent = t.appTitle;
+      document.getElementById("app-subtitle").textContent = t.appSubtitle;
+      document.getElementById("lang-label").textContent = t.langLabel;
+      document.getElementById("tab-video").textContent = t.tabVideo;
+      document.getElementById("tab-rulebook").textContent = t.tabRulebook;
+      document.getElementById("tab-admin").textContent = t.tabAdmin;
+      document.getElementById("v-heading").textContent = t.vHeading;
+      document.getElementById("v-desc").textContent = t.vDesc;
+      document.getElementById("v-file-label").textContent = t.vFileLabel;
+      document.getElementById("v-mode-label").textContent = t.vModeLabel;
+      document.getElementById("opt-both").textContent = t.optBoth;
+      document.getElementById("opt-cross").textContent = t.optCross;
+      document.getElementById("opt-lob").textContent = t.optLob;
+      document.getElementById("v-submit-btn").textContent = t.vSubmit;
+      document.getElementById("res-exp-title").textContent = t.resExpTitle;
+      document.getElementById("r-heading").textContent = t.rHeading;
+      document.getElementById("r-desc").textContent = t.rDesc;
+      document.getElementById("q-sample-1").textContent = t.qSample1;
+      document.getElementById("q-sample-2").textContent = t.qSample2;
+      document.getElementById("rulebook-question").placeholder = t.rPlaceholder;
+      document.getElementById("r-submit-btn").textContent = t.rSubmit;
+      document.getElementById("r-gallery-title").textContent = t.rGalleryTitle;
+      document.getElementById("a-login-title").textContent = t.aLoginTitle;
+      document.getElementById("a-login-desc").textContent = t.aLoginDesc;
+      document.getElementById("a-login-btn").textContent = t.aLoginBtn;
+    }
+
+    function switchTab(tab) {
+      ["video", "rulebook", "admin"].forEach((name) => {
+        document.getElementById(`panel-${name}`).classList.toggle("hidden", name !== tab);
+        const btn = document.getElementById(`tab-${name}`);
+        btn.className =
+          name === tab
+            ? "tab-btn px-4 py-2 text-sm font-medium border-b-2 border-emerald-400 text-emerald-400"
+            : "tab-btn px-4 py-2 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200";
+      });
+    }
+
+    // Video preview
+    document.getElementById("check-video-file").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      const preview = document.getElementById("video-preview");
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove("hidden");
+      } else {
+        preview.classList.add("hidden");
+      }
+    });
+
+    // Submit Video Check
+    document.getElementById("video-check-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = document.getElementById("check-video-file").files[0];
+      if (!file) return;
+
+      const btn = document.getElementById("v-submit-btn");
+      btn.disabled = true;
+      btn.textContent = UI_TEXT[currentLang].vAnalyzing;
+
+      try {
+        const formData = new FormData();
+        formData.append("video", file);
+        formData.append("checkType", document.getElementById("check-type").value);
+        formData.append("language", currentLang);
+
+        const res = await fetch("/api/check-video", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        const r = data.result;
+        const mode = document.getElementById("check-type").value;
+
+        document.getElementById("cross-box").classList.toggle("hidden", mode === "lob");
+        document.getElementById("lob-box").classList.toggle("hidden", mode === "cross");
+
+        document.getElementById("res-cross-statement").textContent = r.cross_statement;
+        document.getElementById("res-cross-pct").textContent = `${r.cross_percent}%`;
+        document.getElementById("res-cross-bar").style.width = `${r.cross_percent}%`;
+
+        document.getElementById("res-lob-statement").textContent = r.lob_statement;
+        document.getElementById("res-lob-pct").textContent = `${r.lob_percent}%`;
+        document.getElementById("res-lob-bar").style.width = `${r.lob_percent}%`;
+
+        document.getElementById("res-explanation").textContent = r.explanation;
+        document.getElementById("video-result").classList.remove("hidden");
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = UI_TEXT[currentLang].vSubmit;
+      }
+    });
+
+    // Rulebook Q&A
+    function appendChat(sender, text) {
+      const box = document.getElementById("chat-box");
+      const welcome = document.getElementById("chat-welcome");
+      if (welcome) welcome.remove();
+
+      const div = document.createElement("div");
+      div.className =
+        sender === "user"
+          ? "ml-auto max-w-[80%] bg-emerald-500/20 border border-emerald-500/30 text-emerald-100 rounded-xl px-4 py-2.5 text-sm"
+          : "mr-auto max-w-[85%] bg-slate-900 border border-slate-800 text-slate-200 rounded-xl px-4 py-2.5 text-sm whitespace-pre-line";
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function askSample(type) {
+      const q =
+        type === "cross"
+          ? UI_TEXT[currentLang].qSample1
+          : UI_TEXT[currentLang].qSample2;
+      document.getElementById("rulebook-question").value = q;
+      document.getElementById("rulebook-form").dispatchEvent(new Event("submit"));
+    }
+
+    document.getElementById("rulebook-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("rulebook-question");
+      const question = input.value.trim();
+      if (!question) return;
+
+      appendChat("user", question);
+      input.value = "";
+
+      const btn = document.getElementById("r-submit-btn");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("/api/ask-rulebook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, language: currentLang }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        appendChat("ai", data.answer);
+      } catch (err) {
+        appendChat("ai", "Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // Admin Login & Status Load
+    async function loginAdmin() {
+      const pin = document.getElementById("admin-pin-input").value;
+      const res = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+      if (res.ok) {
+        adminPin = pin;
+        document.getElementById("admin-login-box").classList.add("hidden");
+        document.getElementById("admin-dashboard").classList.remove("hidden");
+        loadStatus();
+      } else {
+        const err = document.getElementById("admin-login-err");
+        err.textContent = "Incorrect Admin PIN";
+        err.classList.remove("hidden");
+      }
+    }
+
+    async function loadStatus() {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+
+      ["real_cross", "fake_cross", "real_lob", "fake_lob"].forEach((cat) => {
+        document.getElementById(`cnt-${cat}`).textContent = data.counts[cat] || 0;
+      });
+
+      // Render public rulebook gallery
+      const gallery = document.getElementById("public-rulebook-gallery");
+      gallery.innerHTML = data.rulebookImages.length
+        ? data.rulebookImages
+            .map(
+              (img) => `
+          <a href="/uploads/rulebook/${img.filename}" target="_blank" class="block bg-slate-950 border border-slate-800 rounded-lg overflow-hidden hover:border-emerald-500">
+            <img src="/uploads/rulebook/${img.filename}" class="w-full h-28 object-cover" />
+            <div class="p-2 truncate">${img.title}</div>
+          </a>`
+            )
+            .join("")
+        : "<p class='col-span-full text-slate-500'>No rulebook photos uploaded yet.</p>";
+
+      // Render admin training list
+      const tList = document.getElementById("training-list");
+      tList.innerHTML = data.trainingVideos
+        .map(
+          (v) => `
+        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs">
+          <div>
+            <span class="font-bold text-emerald-400">[${v.category}]</span>
+            <span class="text-slate-200 ml-1">${v.originalName}</span>
+            <p class="text-slate-500 mt-0.5 line-clamp-1">${v.notes || ""}</p>
+          </div>
+          <button onclick="deleteTraining('${v.id}')" class="text-rose-400 hover:underline ml-3">Delete</button>
+        </div>`
+        )
+        .join("");
+
+      // Render admin rulebook list
+      const rList = document.getElementById("admin-rulebook-list");
+      rList.innerHTML = data.rulebookImages
+        .map(
+          (img) => `
+        <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs">
+          <span class="text-slate-200">${img.title} (${img.originalName})</span>
+          <button onclick="deleteRulebook('${img.id}')" class="text-rose-400 hover:underline ml-3">Delete</button>
+        </div>`
+        )
+        .join("");
+    }
+
+    // Admin: Upload Training Video
+    document.getElementById("admin-training-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = document.getElementById("train-video-file").files[0];
+      if (!file) return;
+
+      const btn = document.getElementById("train-submit-btn");
+      btn.disabled = true;
+      btn.textContent = "Uploading & AI Analyzing Video...";
+
+      try {
+        const fd = new FormData();
+        fd.append("video", file);
+        fd.append("category", document.getElementById("train-category").value);
+        fd.append("notes", document.getElementById("train-notes").value);
+
+        const res = await fetch("/api/admin/training", {
+          method: "POST",
+          headers: { "x-admin-pin": adminPin },
+          body: fd,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById("admin-training-form").reset();
+        await loadStatus();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Upload & Train AI with Video";
+      }
+    });
+
+    // Admin: Upload Rulebook Photo
+    document.getElementById("admin-rulebook-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = document.getElementById("rulebook-image-file").files[0];
+      if (!file) return;
+
+      const btn = document.getElementById("rulebook-upload-btn");
+      btn.disabled = true;
+      btn.textContent = "Uploading & Reading Photo...";
+
+      try {
+        const fd = new FormData();
+        fd.append("image", file);
+        fd.append("title", document.getElementById("rulebook-title").value);
+
+        const res = await fetch("/api/admin/rulebook", {
+          method: "POST",
+          headers: { "x-admin-pin": adminPin },
+          body: fd,
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById("admin-rulebook-form").reset();
+        await loadStatus();
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Upload & Read Rulebook Photo";
+      }
+    });
+
+    async function deleteTraining(id) {
+      await fetch(`/api/admin/training/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-pin": adminPin },
+      });
+      loadStatus();
+    }
+
+    async function deleteRulebook(id) {
+      await fetch(`/api/admin/rulebook/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-pin": adminPin },
+      });
+      loadStatus();
+    }
+
+    // Initial public load
+    loadStatus();
+  </script>
+</body>
+</html>
