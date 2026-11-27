@@ -141,6 +141,27 @@ app.post("/api/admin/verify", (req, res) => {
   return res.status(401).json({ ok: false, error: "Incorrect PIN" });
 });
 
+// List all models currently available on your GEMINI_API_KEY
+app.get("/api/models", async (req, res) => {
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`
+    );
+    const data = await response.json();
+    if (!response.ok) return res.status(response.status).json(data);
+
+    const available = (data.models || [])
+      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m) => ({
+        id: m.name.replace(/^models\//, ""),
+        displayName: m.displayName,
+      }));
+
+    res.json({ activeConfigured: GEMINI_MODELS, available });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // Get training counts and rulebook list
 app.get("/api/status", (req, res) => {
   const db = readDB();
