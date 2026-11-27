@@ -76,35 +76,50 @@ const upload = multer({
 // Helper: Call Gemini Multimodal API
 async function callGemini(parts, { jsonMode = false, temperature = 0.2 } = {}) {
   if (!GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is missing in .env file.");
+    throw new Error("GEMINI_API_KEY is missing in environment variables.");
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  let lastError = null;
 
-  const body = {
-    contents: [{ parts }],
-    generationConfig: {
-      temperature,
-      ...(jsonMode ? { responseMimeType: "application/json" } : {}),
-    },
-  };
+  for (const model of GEMINI_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+    const body = {
+      contents: [{ parts }],
+      generationConfig: {
+        temperature,
+        ...(jsonMode ? { responseMimeType: "application/json" } : {}),
+      },
+    };
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error?.message || "Gemini API request failed.");
+      const data = await response.json();
+      if (!response.ok) {
+        lastError = new Error(`[${model}] ${data.error?.message || "Request failed"}`);
+        // Automatically try backup model if unavailable, rate-limited, or high demand
+        if ([400, 404, 429, 500, 503].includes(response.status)) {
+          continue;
+        }
+        throw lastError;
+      }
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) {
+        lastError = new Error(`[${model}] Empty response from AI.`);
+        continue;
+      }
+      return text;
+    } catch (err) {
+      lastError = err;
+    }
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error("No response received from AI.");
-  }
-  return text;
+  throw lastError || new Error("All configured Gemini models failed.");
 }
 
 function fileToInlinePart(filePath, mimeType) {
